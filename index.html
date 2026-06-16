@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>좌표의 숲</title>
     <style>
-        /* 어두운 미로 느낌의 다크 테마 스타일링 */
+        /* 어두운 미로 느낌의 고대비 다크 테마 스타일링 */
         body {
             font-family: 'Malgun Gothic', sans-serif;
             background-color: #121212;
@@ -33,9 +33,9 @@
 
         #left {
             position: relative;
-            border: 3px solid #444;
+            border: 3px solid #555;
             border-radius: 10px;
-            background-color: #000;
+            background-color: #111;
             overflow: hidden;
         }
 
@@ -67,8 +67,8 @@
             flex-direction: column;
         }
 
-        h1 { margin-top: 0; color: #4caf50; font-size: 24px; text-shadow: 0 0 5px rgba(76, 175, 80, 0.5); }
-        h2 { color: #aaa; font-size: 18px; border-bottom: 2px solid #444; padding-bottom: 10px; }
+        h1 { margin-top: 0; color: #81c784; font-size: 24px; text-shadow: 0 0 5px rgba(129, 199, 132, 0.5); }
+        h2 { color: #ccc; font-size: 18px; border-bottom: 2px solid #444; padding-bottom: 10px; }
 
         .info-box {
             background-color: #2a2a40;
@@ -128,6 +128,7 @@
             margin-top: 15px;
             height: 20px;
             color: #ff5252;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -177,12 +178,12 @@
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    // 테마 설정 (단계에 맞는 분위기 연출)
+    // 테마 설정 (배경색은 짙게 유지하되, 오브젝트 색상을 밝은 형광톤으로 배치하여 가시성 확보)
     const themes = [
-        { name: "직선의 숲", bgColor: "#0f1c13", decorColor: "#2e7d32", type: "tree" },     // 1단계
-        { name: "기울기의 협곡", bgColor: "#241610", decorColor: "#795548", type: "rock" },   // 2단계
-        { name: "함수의 늪", bgColor: "#101924", decorColor: "#455a64", type: "rock" },     // 3단계
-        { name: "절편의 유적", bgColor: "#1d1024", decorColor: "#673ab7", type: "tree" }     // 4단계
+        { name: "직선의 숲", bgColor: "#14251c", decorColor: "#81c784", type: "tree" },     // 1단계 (초록 나무)
+        { name: "기울기의 협곡", bgColor: "#2d1f18", decorColor: "#ffb74d", type: "rock" },   // 2단계 (오렌지 바위)
+        { name: "함수의 늪", bgColor: "#152332", decorColor: "#4dd0e1", type: "rock" },     // 3단계 (하늘색 늪지)
+        { name: "절편의 유적", bgColor: "#251632", decorColor: "#ba68c8", type: "tree" }     // 4단계 (보라색 유적)
     ];
 
     let state = {
@@ -213,25 +214,23 @@
         bossStatus: document.getElementById('bossStatus')
     };
 
-    // 게임 시작 초기화
     function init() {
         generateDecors();
         generateQuestion();
         drawCanvas();
     }
 
-    // 미로/지형 장식물 무작위 배치
+    // 미로 지형 장식물 무작위 배치
     function generateDecors() {
         state.decors = [];
         for (let i = 0; i < 45; i++) {
             let dx = Math.floor(Math.random() * 18) - 9;
             let dy = Math.floor(Math.random() * 16) - 8;
-            if (Math.abs(dx) < 2 && Math.abs(dy) < 2) continue; // 시작점 주변 비우기
+            if (Math.abs(dx) < 2 && Math.abs(dy) < 2) continue; // 플레이어 시작점 주변은 비워둠
             state.decors.push({ x: dx, y: dy });
         }
     }
 
-    // 게임 좌표계를 캔버스 픽셀 좌표로 변환
     function toCanvas(x, y) {
         return {
             cx: centerX + x * gridSize,
@@ -239,7 +238,7 @@
         };
     }
 
-    // 문제 생성 (화면 이탈 방지 로직 적용!)
+    // 문제 생성 (화면 이탈 방지 로직 포함)
     function generateQuestion() {
         state.playerPos = { ...state.targetPos };
         
@@ -247,7 +246,7 @@
         
         // 목적지가 캔버스 화면 크기 안쪽(-8~8, -7~7)에만 위치하도록 제한
         do {
-            const dxChoices = [1, 2, -1, -2]; // 답이 깔끔하게 떨어지도록 설정
+            const dxChoices = [1, 2, -1, -2]; // 답이 딱 떨어지게 유도
             dx = dxChoices[Math.floor(Math.random() * dxChoices.length)];
             dy = Math.floor(Math.random() * 9) - 4; // -4 ~ +4
             
@@ -259,7 +258,7 @@
         state.targetPos = { x: targetX, y: targetY };
         state.answer = dy / dx;
         
-        // y = ax + b 공식에서 b(절편) 구하기
+        // $y = ax + b$ 공식에서 b(절편) 구하기
         let b = state.playerPos.y - (state.answer * state.playerPos.x);
         
         let bText = "";
@@ -273,7 +272,6 @@
         updateUI();
     }
 
-    // 우측 정보창 UI 및 보스 상태 갱신
     function updateUI() {
         let currentTheme = themes[(state.level - 1) % themes.length];
         ui.stageText.innerText = `${state.level}단계 - ${currentTheme.name}`;
@@ -286,7 +284,7 @@
         ui.currentPos.innerText = `(${state.playerPos.x}, ${state.playerPos.y})`;
         ui.targetPos.innerText = `(${state.targetPos.x}, ${state.targetPos.y})`;
         
-        // 4스테이지(보스전)에서만 보스 활성화 활성
+        // 4스테이지(보스전)에서만 보스 추격 활성화
         if (state.stage === 4) {
             let bossDist = Math.sqrt(Math.pow(state.playerPos.x - state.bossPos.x, 2) + Math.pow(state.playerPos.y - state.bossPos.y, 2));
             if (bossDist < 3) {
@@ -310,8 +308,8 @@
         ctx.fillStyle = currentTheme.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. 어두운 눈금 격자선
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        // 2. 눈금 격자선 (가시성을 위해 더 밝게 조정: 0.05 -> 0.12)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; 
         ctx.lineWidth = 1;
         for (let i = 0; i <= canvas.width; i += gridSize) {
             ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
@@ -320,13 +318,13 @@
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
-        // 기준 축 (X축, Y축)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        // 메인 중심 축 (X축, Y축 - 선명하게 배치)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(canvas.width, centerY); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(centerX, 0); ctx.lineTo(centerX, canvas.height); ctx.stroke();
 
-        // 3. 지형지물 (미로 분위기 장식물) 그리기
+        // 3. 지형지물 (미로 분위기 장식물 - 고대비 색상 적용)
         ctx.fillStyle = currentTheme.decorColor;
         state.decors.forEach(decor => {
             let px = toCanvas(decor.x, decor.y);
@@ -338,7 +336,7 @@
                 ctx.lineTo(px.cx + 10, px.cy + 10);
                 ctx.fill();
             } else {
-                // 협곡 바위 형태 (다각형 원 모양)
+                // 협곡 바위 형태 (원 모양)
                 ctx.beginPath();
                 ctx.arc(px.cx, px.cy, 9, 0, Math.PI * 2);
                 ctx.fill();
@@ -349,5 +347,112 @@
         let targetPx = toCanvas(state.targetPos.x, state.targetPos.y);
         let playerPx = toCanvas(state.playerPos.x, state.playerPos.y);
         
-        ctx.strokeStyle = 'rgba(100, 181, 246, 0.4)';
-        ctx
+        ctx.strokeStyle = 'rgba(100, 181, 246, 0.6)';
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(playerPx.cx, playerPx.cy);
+        ctx.lineTo(targetPx.cx, targetPx.cy);
+        ctx.stroke();
+        ctx.setLineDash([]); 
+
+        // 5. 목적지 (노란색 구체)
+        ctx.fillStyle = '#ffee58';
+        ctx.beginPath(); ctx.arc(targetPx.cx, targetPx.cy, 9, 0, Math.PI * 2); ctx.fill();
+
+        // 6. 플레이어 (형광 네온 블루 원형)
+        ctx.fillStyle = '#00e5ff';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#00e5ff';
+        ctx.beginPath(); ctx.arc(playerPx.cx, playerPx.cy, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0; // 그림자 초기화
+
+        // 7. 보스 (4스테이지가 되면 강렬한 붉은 사각형 추격)
+        if (state.stage === 4) {
+            let bossPx = toCanvas(state.bossPos.x, state.bossPos.y);
+            ctx.fillStyle = '#ff1744';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff1744';
+            ctx.fillRect(bossPx.cx - 15, bossPx.cy - 15, 30, 30);
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    function showPopup(id) {
+        const popup = document.getElementById(id);
+        popup.style.display = 'block';
+        setTimeout(() => { popup.style.display = 'none'; }, 2000);
+    }
+
+    // 정답 판정 및 제출 이벤트
+    document.getElementById('submitBtn').addEventListener('click', () => {
+        if (state.isGameOver) return;
+
+        let userAnswer = parseFloat(ui.answerInput.value);
+        if (isNaN(userAnswer)) {
+            ui.message.innerText = "숫자를 입력해주세요!";
+            return;
+        }
+
+        if (Math.abs(userAnswer - state.answer) < 0.05) {
+            ui.message.innerText = "정답입니다!";
+            ui.message.style.color = "#4caf50";
+            ui.answerInput.value = '';
+
+            state.question++;
+            if (state.question > 5) {
+                state.question = 1;
+                state.stage++;
+                showPopup('stage-clear-popup');
+                
+                // 4스테이지(보스전) 진입 시 보스 배치
+                if (state.stage === 4) {
+                    state.bossPos = { 
+                        x: state.playerPos.x - 5, 
+                        y: state.playerPos.y - 5 
+                    };
+                }
+
+                if (state.stage > 4) {
+                    state.stage = 1;
+                    state.level++;
+                    generateDecors(); // 단계 격상 시 미로 지형 리셋
+                    showPopup('level-clear-popup');
+                }
+            }
+            generateQuestion();
+        } else {
+            state.life--;
+            
+            if (state.stage === 4) {
+                ui.message.innerText = "오답입니다! 보스가 다가옵니다!";
+                ui.message.style.color = "#ff5252";
+                state.bossPos.x += (state.playerPos.x - state.bossPos.x) / 2;
+                state.bossPos.y += (state.playerPos.y - state.bossPos.y) / 2;
+                showPopup('boss-warning');
+            } else {
+                ui.message.innerText = "오답입니다! 생명이 감소했습니다.";
+                ui.message.style.color = "#ffb74d";
+            }
+
+            if (state.life <= 0) {
+                alert("생명을 모두 잃었습니다. 게임 오버!");
+                state.isGameOver = true;
+                return;
+            }
+        }
+        
+        updateUI();
+        drawCanvas();
+    });
+
+    ui.answerInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            document.getElementById('submitBtn').click();
+        }
+    });
+
+    init();
+</script>
+
+</body>
+</html>
