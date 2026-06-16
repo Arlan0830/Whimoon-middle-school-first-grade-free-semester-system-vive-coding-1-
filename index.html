@@ -137,7 +137,7 @@
 <div id="game-wrapper">
     <div id="panel">
         <div id="left">
-            <div id="boss-warning">⚠ 보스가 추격 중입니다!</div>
+            <div id="boss-warning">⚠ 보스가 격렬하게 추격합니다!</div>
             <div id="stage-clear-popup">✨ 스테이지 클리어!</div>
             <div id="level-clear-popup">🌲 단계 완료!</div>
             <div id="game-clear-popup">👑 게임 클리어!</div>
@@ -157,6 +157,7 @@
                 <div>남은 생명 : <span id="life">3</span></div>
                 <div>현재 테마 : <span id="themeName" style="color: #81c784;">직선의 숲</span></div>
                 <div>보스 상태 : <span id="bossStatus" style="color: #9e9e9e;">대기 중</span></div>
+                <div>보스 속도 : <span id="bossSpeedText" style="color: #ff5252;">-</span></div>
             </div>
 
             <div class="question">
@@ -178,12 +179,12 @@
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    // 테마 설정 (배경색은 짙게 유지하되, 오브젝트 색상을 밝은 형광톤으로 배치하여 가시성 확보)
+    // 테마 설정 (가시성이 확보된 어두운 미로 테마)
     const themes = [
-        { name: "직선의 숲", bgColor: "#14251c", decorColor: "#81c784", type: "tree" },     // 1단계 (초록 나무)
-        { name: "기울기의 협곡", bgColor: "#2d1f18", decorColor: "#ffb74d", type: "rock" },   // 2단계 (오렌지 바위)
-        { name: "함수의 늪", bgColor: "#152332", decorColor: "#4dd0e1", type: "rock" },     // 3단계 (하늘색 늪지)
-        { name: "절편의 유적", bgColor: "#251632", decorColor: "#ba68c8", type: "tree" }     // 4단계 (보라색 유적)
+        { name: "직선의 숲", bgColor: "#14251c", decorColor: "#81c784", type: "tree" },     
+        { name: "기울기의 협곡", bgColor: "#2d1f18", decorColor: "#ffb74d", type: "rock" },   
+        { name: "함수의 늪", bgColor: "#152332", decorColor: "#4dd0e1", type: "rock" },     
+        { name: "절편의 유적", bgColor: "#251632", decorColor: "#ba68c8", type: "tree" }     
     ];
 
     let state = {
@@ -194,6 +195,7 @@
         playerPos: { x: 0, y: 0 },
         targetPos: { x: 0, y: 0 },
         bossPos: { x: -8, y: -8 },
+        bossSpeed: 1.0, // 보스의 이동 속도 변수
         answer: 0,
         isGameOver: false,
         decors: [] 
@@ -211,7 +213,8 @@
         answerInput: document.getElementById('answerInput'),
         message: document.getElementById('message'),
         themeName: document.getElementById('themeName'),
-        bossStatus: document.getElementById('bossStatus')
+        bossStatus: document.getElementById('bossStatus'),
+        bossSpeedText: document.getElementById('bossSpeedText')
     };
 
     function init() {
@@ -220,17 +223,17 @@
         drawCanvas();
     }
 
-    // 미로 지형 장식물 무작위 배치
     function generateDecors() {
         state.decors = [];
         for (let i = 0; i < 45; i++) {
             let dx = Math.floor(Math.random() * 18) - 9;
             let dy = Math.floor(Math.random() * 16) - 8;
-            if (Math.abs(dx) < 2 && Math.abs(dy) < 2) continue; // 플레이어 시작점 주변은 비워둠
+            if (Math.abs(dx) < 2 && Math.abs(dy) < 2) continue; 
             state.decors.push({ x: dx, y: dy });
         }
     }
 
+    // 수학적 좌표평면 알고리즘 (+X 우측, +Y 상단)
     function toCanvas(x, y) {
         return {
             cx: centerX + x * gridSize,
@@ -238,17 +241,15 @@
         };
     }
 
-    // 문제 생성 (화면 이탈 방지 로직 포함)
     function generateQuestion() {
         state.playerPos = { ...state.targetPos };
         
         let dx, dy, targetX, targetY;
         
-        // 목적지가 캔버스 화면 크기 안쪽(-8~8, -7~7)에만 위치하도록 제한
         do {
-            const dxChoices = [1, 2, -1, -2]; // 답이 딱 떨어지게 유도
+            const dxChoices = [1, 2, -1, -2]; 
             dx = dxChoices[Math.floor(Math.random() * dxChoices.length)];
-            dy = Math.floor(Math.random() * 9) - 4; // -4 ~ +4
+            dy = Math.floor(Math.random() * 9) - 4; 
             
             targetX = state.playerPos.x + dx;
             targetY = state.playerPos.y + dy;
@@ -258,7 +259,6 @@
         state.targetPos = { x: targetX, y: targetY };
         state.answer = dy / dx;
         
-        // $y = ax + b$ 공식에서 b(절편) 구하기
         let b = state.playerPos.y - (state.answer * state.playerPos.x);
         
         let bText = "";
@@ -284,11 +284,11 @@
         ui.currentPos.innerText = `(${state.playerPos.x}, ${state.playerPos.y})`;
         ui.targetPos.innerText = `(${state.targetPos.x}, ${state.targetPos.y})`;
         
-        // 4스테이지(보스전)에서만 보스 추격 활성화
         if (state.stage === 4) {
+            ui.bossSpeedText.innerText = state.bossSpeed.toFixed(1);
             let bossDist = Math.sqrt(Math.pow(state.playerPos.x - state.bossPos.x, 2) + Math.pow(state.playerPos.y - state.bossPos.y, 2));
-            if (bossDist < 3) {
-                ui.bossStatus.innerText = "위험! 근접함!";
+            if (bossDist < 2.5) {
+                ui.bossStatus.innerText = "위험! 바로 뒤에 있음!";
                 ui.bossStatus.style.color = "#ff5252";
             } else {
                 ui.bossStatus.innerText = "추격 중...";
@@ -297,18 +297,39 @@
         } else {
             ui.bossStatus.innerText = "대기 중";
             ui.bossStatus.style.color = "#9e9e9e";
+            ui.bossSpeedText.innerText = "-";
         }
     }
 
-    // 그래픽 드로잉
+    // 보스 추격 알고리즘 (벡터 추적 방식 및 충돌 체크)
+    function chasePlayer() {
+        let dx = state.playerPos.x - state.bossPos.x;
+        let dy = state.playerPos.y - state.bossPos.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 0.1) {
+            // 플레이어 방향 벡터 구하기 후 속도만큼 전진
+            state.bossPos.x += (dx / dist) * state.bossSpeed;
+            state.bossPos.y += (dy / dist) * state.bossSpeed;
+        }
+
+        // 이동 후 플레이어와 완전히 충돌했는지 최종 판정
+        let finalDist = Math.sqrt(Math.pow(state.playerPos.x - state.bossPos.x, 2) + Math.pow(state.playerPos.y - state.bossPos.y, 2));
+        if (finalDist < 0.7) {
+            drawCanvas();
+            alert("보스에게 붙잡혔습니다! 게임 오버!");
+            state.isGameOver = true;
+        }
+    }
+
     function drawCanvas() {
         let currentTheme = themes[(state.level - 1) % themes.length];
 
-        // 1. 맵 기본 배경색
+        // 1. 기본 배경
         ctx.fillStyle = currentTheme.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. 눈금 격자선 (가시성을 위해 더 밝게 조정: 0.05 -> 0.12)
+        // 2. 좌표선 및 격자 그리드
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; 
         ctx.lineWidth = 1;
         for (let i = 0; i <= canvas.width; i += gridSize) {
@@ -318,32 +339,47 @@
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
-        // 메인 중심 축 (X축, Y축 - 선명하게 배치)
+        // 중심 축 (X축, Y축)
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(canvas.width, centerY); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(centerX, 0); ctx.lineTo(centerX, canvas.height); ctx.stroke();
 
-        // 3. 지형지물 (미로 분위기 장식물 - 고대비 색상 적용)
+        // ★ [기능 추가] 실제 좌표평면과 완벽 일치하는 격자 숫자 텍스트 그리기
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.font = "bold 11px Arial";
+        
+        // X축 숫자 라벨
+        for (let x = -9; x <= 9; x++) {
+            if (x === 0) continue;
+            let px = toCanvas(x, 0);
+            ctx.fillText(x, px.cx - 5, centerY + 16);
+        }
+        // Y축 숫자 라벨
+        for (let y = -8; y <= 8; y++) {
+            if (y === 0) continue;
+            let px = toCanvas(0, y);
+            ctx.fillText(y, centerX + 8, px.cy + 4);
+        }
+
+        // 3. 지형지물 배치
         ctx.fillStyle = currentTheme.decorColor;
         state.decors.forEach(decor => {
             let px = toCanvas(decor.x, decor.y);
             if (currentTheme.type === "tree") {
-                // 나무 형태 (삼각형 모양)
                 ctx.beginPath();
                 ctx.moveTo(px.cx, px.cy - 12);
                 ctx.lineTo(px.cx - 10, px.cy + 10);
                 ctx.lineTo(px.cx + 10, px.cy + 10);
                 ctx.fill();
             } else {
-                // 협곡 바위 형태 (원 모양)
                 ctx.beginPath();
                 ctx.arc(px.cx, px.cy, 9, 0, Math.PI * 2);
                 ctx.fill();
             }
         });
 
-        // 4. 이동 궤적 예측선 (점선)
+        // 4. 경로 점선
         let targetPx = toCanvas(state.targetPos.x, state.targetPos.y);
         let playerPx = toCanvas(state.playerPos.x, state.playerPos.y);
         
@@ -355,18 +391,18 @@
         ctx.stroke();
         ctx.setLineDash([]); 
 
-        // 5. 목적지 (노란색 구체)
+        // 5. 목적지 노란 구체
         ctx.fillStyle = '#ffee58';
         ctx.beginPath(); ctx.arc(targetPx.cx, targetPx.cy, 9, 0, Math.PI * 2); ctx.fill();
 
-        // 6. 플레이어 (형광 네온 블루 원형)
+        // 6. 플레이어 네온 블루 구체
         ctx.fillStyle = '#00e5ff';
         ctx.shadowBlur = 12;
         ctx.shadowColor = '#00e5ff';
         ctx.beginPath(); ctx.arc(playerPx.cx, playerPx.cy, 12, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0; // 그림자 초기화
+        ctx.shadowBlur = 0; 
 
-        // 7. 보스 (4스테이지가 되면 강렬한 붉은 사각형 추격)
+        // 7. 보스 레드 스퀘어 (4스테이지 헬 하운드)
         if (state.stage === 4) {
             let bossPx = toCanvas(state.bossPos.x, state.bossPos.y);
             ctx.fillStyle = '#ff1744';
@@ -383,7 +419,7 @@
         setTimeout(() => { popup.style.display = 'none'; }, 2000);
     }
 
-    // 정답 판정 및 제출 이벤트
+    // 이동/제출 버튼 로직
     document.getElementById('submitBtn').addEventListener('click', () => {
         if (state.isGameOver) return;
 
@@ -393,10 +429,19 @@
             return;
         }
 
+        // 1. 정답을 맞춘 경우
         if (Math.abs(userAnswer - state.answer) < 0.05) {
             ui.message.innerText = "정답입니다!";
             ui.message.style.color = "#4caf50";
             ui.answerInput.value = '';
+
+            // 4스테이지 보스전 진행 중이라면 정답 시 보스 속도 1 감소 (최소 0.4 보장)
+            if (state.stage === 4) {
+                state.bossSpeed = Math.max(0.4, state.bossSpeed - 1.0);
+                chasePlayer(); // 정답 처리 후 느려진 속도로 플레이어 추격
+            }
+
+            if (state.isGameOver) return;
 
             state.question++;
             if (state.question > 5) {
@@ -404,31 +449,39 @@
                 state.stage++;
                 showPopup('stage-clear-popup');
                 
-                // 4스테이지(보스전) 진입 시 보스 배치
+                // ★ [기능 추가] 4스테이지 보스전 진입 즉시 플레이어의 '원점 대칭 위치'에서 스폰
                 if (state.stage === 4) {
                     state.bossPos = { 
-                        x: state.playerPos.x - 5, 
-                        y: state.playerPos.y - 5 
+                        x: -state.playerPos.x, 
+                        y: -state.playerPos.y 
                     };
+                    // 만약 원점 대칭 좌표가 플레이어와 너무 가깝다면 안전거리 강제 패치
+                    if (Math.abs(state.bossPos.x - state.playerPos.x) < 3 && Math.abs(state.bossPos.y - state.playerPos.y) < 3) {
+                        state.bossPos = { x: -7, y: -6 }; 
+                    }
+                    state.bossSpeed = 1.0; // 보스 기본 초기 속도 세팅
                 }
 
                 if (state.stage > 4) {
                     state.stage = 1;
                     state.level++;
-                    generateDecors(); // 단계 격상 시 미로 지형 리셋
+                    generateDecors(); 
                     showPopup('level-clear-popup');
                 }
             }
             generateQuestion();
+
+        // 2. 오답인 경우
         } else {
             state.life--;
             
+            // 4스테이지 보스전 진행 중 오답 시 보스 속도 1 증가 및 추격 가속화
             if (state.stage === 4) {
-                ui.message.innerText = "오답입니다! 보스가 다가옵니다!";
+                state.bossSpeed += 1.0;
+                ui.message.innerText = "오답입니다! 보스의 이동 속도가 상승하며 돌진합니다!";
                 ui.message.style.color = "#ff5252";
-                state.bossPos.x += (state.playerPos.x - state.bossPos.x) / 2;
-                state.bossPos.y += (state.playerPos.y - state.bossPos.y) / 2;
                 showPopup('boss-warning');
+                chasePlayer(); // 가속된 속도로 플레이어 급습
             } else {
                 ui.message.innerText = "오답입니다! 생명이 감소했습니다.";
                 ui.message.style.color = "#ffb74d";
